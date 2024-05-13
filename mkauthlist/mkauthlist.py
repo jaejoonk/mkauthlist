@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """A simple script for making latex author lists from the csv file
 produced by the DES Publication Database (PubDB).
 
@@ -119,7 +119,8 @@ journal2class = odict([
     ('elsevier','elsevier'),
     ('emulateapj','emulateapj'),
     ('arxiv','arxiv'),
-    ('aanda', 'aanda')
+    ('aanda', 'aanda'),
+    ('jcap', 'jcap')
 ])
 
 defaults = dict(
@@ -127,6 +128,13 @@ defaults = dict(
     abstract=r"This is a sample document created by \texttt{%s v%s}."%(os.path.basename(__file__),__version__),
     collaboration="DES Collaboration"
 )
+
+### JCAP ###
+jcap_authlist = r"""
+%(authors)s
+
+%(affiliations)s
+"""
 
 ### REVTEX ###
 revtex_authlist = r"""
@@ -453,6 +461,48 @@ if __name__ == "__main__":
             raw = raw[~match]
         order = np.vstack([order,raw])
         data = data[order[:,-1].astype(int)]
+
+    ### custom setup for jcap
+    if cls in ['jcap']:
+        document = aastex6_document
+        authlist = jcap_authlist
+
+        affiliations = {}
+        start_chr = 97 # hoping you don't get over 26 affiliations!
+        for i,d in enumerate(data):
+            authorkey = '{%s}'%(d['Authorname'])
+            
+            if args.orcid and d['ORCID']:
+                authorkey = authorkey.replace('}', '\,\orcidlink{%s}}'%d['ORCID'])
+
+            if d['Affiliation'] not in affiliations.keys():
+                if start_chr > 122: start_chr = 65
+                affiliations[d['Affiliation']] = chr(start_chr)
+                start_chr += 1
+
+            if authorkey not in authdict.keys():
+                authdict[authorkey] = [d['Affiliation']]
+            else:
+                authdict[authorkey].append(d['Affiliation'])
+
+        authors = []
+        affils = []
+        for key,val in authdict.items():
+            affil = '['
+            for v in val:
+                if v == val[0]:
+                    affil += '%s'%affiliations[v]
+                else:
+                    affil += ',%s'%affiliations[v]
+            affil += ']'
+
+            author = r'\author%s%s'%(affil,key)+'\n'
+            authors.append(author)
+
+        for k, v in affiliations.items():
+            affils.append(r'\affiliation[%s]{%s}'%(v,k)+'\n')
+
+        params = dict(defaults,authors=''.join(authors), affiliations=''.join(affils))    
 
     ### REVTEX ###
     if cls in ['revtex','aastex6']:
