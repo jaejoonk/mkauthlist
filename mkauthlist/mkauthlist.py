@@ -468,7 +468,7 @@ if __name__ == "__main__":
         authlist = jcap_authlist
 
         affiliations = {}
-        start_chr = 97 # hoping you don't get over 26 affiliations!
+        start = 1
         for i,d in enumerate(data):
             authorkey = '{%s}'%(d['Authorname'])
             
@@ -476,9 +476,8 @@ if __name__ == "__main__":
                 authorkey = authorkey.replace('}', '\,\orcidlink{%s}}'%d['ORCID'])
 
             if d['Affiliation'] not in affiliations.keys():
-                if start_chr > 122: start_chr = 65
-                affiliations[d['Affiliation']] = chr(start_chr)
-                start_chr += 1
+                affiliations[d['Affiliation']] = start
+                start += 1
 
             if authorkey not in authdict.keys():
                 authdict[authorkey] = [d['Affiliation']]
